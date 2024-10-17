@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Circle with Split Hover and Click</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        svg {
+            margin: 0px;
+        }
+        text {
+            font-family: Arial, sans-serif;
+            font-weight: 400;
+            font-size: 11px;
+            fill: black;
+            cursor: pointer;
+        }
+        .normal{
+            fill: white;
+        }
+        .expandedarc{
+            fill: #DBFBFF;
+        }
+        .highlighted{
+            fill: #A3F9FF;
+        }
+        .shadoweffect{
+            filter: drop-shadow(0.8px 0.8px 0.4px);
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+            fill: #dafbff
+        }
+        .shadoweffectmonth{
+            filter: drop-shadow(0.8px 0.8px 0.4px);
+            fill: white
+        }
+        .prevgroup{
+            fill: rgb(252, 236, 236);
+        }
+        .maingrp{
+            display: flex;
+            flex-direction: row;
+            justify-content: start;
+
+        }
+        .labelshighlight{
+            fill: #A3F9FF;
+        }
+    </style>
+</head>
+<body>
+    <div class="maingrp">
+        <svg width="370" height="370"></svg>
+        <svg id="svgtime" width="370" height="370"></svg>
+    </div>
+    
+
+    <script>
+        
+
+
+//date picker
+        const svg = d3.select('svg');
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
+        const radius = Math.min(width, height) / 2 - 20;
+        const expandedRadius = radius + 0;  
+        const innerRadius = 0;  
+
+        const g = svg.append('g')
+            .attr('transform', `translate(${width / 2}, ${height / 2})`);
+        
+        const outerG = svg.append('g')
+            .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+        // Group for the outermost circle (years)
+        const yearG = svg.append('g')
+            .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+        const numGroups = 10;
+        let data = [1,2,3,4,5,6];
+
+        let curHovInd = 1;
+        let newDataaaa2 = [];
+        let clickedIndex = 2
+
+        for (let i=0; i<data.length; i++){
+            if (data[i] === curHovInd){
+                for (let j=0; j<5; j++){
+                    newDataaaa2.push(0.8)
+                }
+            }
+            else{
+                newDataaaa2.push(1)
+            }
+        }
+
+
+        let newDataLabels2 = [];
+
+        let end = 0;
+        let start = end;
+        let zount = 0;
+
+        for (let i=0; i<data.length; i++){
+            if (data[i] === curHovInd){
+                for (let j=0; j<5; j++){
+                    newDataLabels2.push((curHovInd-1)*5 + j+1)
+                    zount += 1
+                }
+            }
+            else{
+                start = end + 1
+                if (zount > 0){
+                    start += 5
+                    zount = 0
+                }
+                end = start + 4
+                newDataLabels2.push(`${start}-${end}`)
+            }
+        }
+
+
+
+        let pie = d3.pie()
+            .sort(null)
+            .value(d=>d);
+
+        let arc = d3.arc()
+            .innerRadius(innerRadius)
+            .outerRadius(radius-70);
+
+
+        let arcs = g.selectAll('path')
+            .data(pie(newDataaaa2))
+            .enter()
+            .append('path')
+            .attr('d', arc)
+            .attr('fill', "white")
+            .attr('stroke', 'black')
+            .style('stroke-width', '0.08px');
+
+        let initstartAngle = 70;
+        let initendAngle = 90;
+        let initangle = (initstartAngle + initendAngle) / 2;
+        let initrotateAngle = (initangle) - 90;
+
+        g.transition()
+            .duration(0)
+            .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-initrotateAngle})`)
+            .on('end', () => {
+                rotating = false;
+            });
+
+        let num = -4;
+        let labeldata = "";
+        let labels = g.selectAll('text')
+            .data(pie(newDataaaa2))
+            .enter()
+            .append('text')
+            .attr('transform', d => {
+                const [x,y] = arc.centroid(d);
+                return `translate(${x*1.4}, ${y*1.4}) rotate(${initrotateAngle})`
+            })
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .text((d, i) => {
+                return `${newDataLabels2[i]}`})
+            .attr("class", `${labeldata}`);
+        
+        
+        //highlighting initially expanded dates
+        arcs.attr("class", function(d) {
+            if (d.data === 0.8){
+                if (d.index === 2){
+                    return 'highlighted'
+                }
+                return 'expandedarc'
+            }
+            });
+
+        // mouse hover for dates circle
+
+        let prevHoveredLastIndex = 4;
+        let prevHoveredLastLabel = 5;
+        let angle = 0;
+        let rotateAngle = initrotateAngle;
+        let rotating = false;
+        let clickedIndex1 = clickedIndex
+
+        let a = 1;
+        arcs.on("mouseover", function(event, d){
+            if (rotating){
+                return 
+            }
+
+            let hoverInd = d.index;
+
+    
+            arcs.attr("class", function(d) {
+                if (d.index === clickedIndex1 && d.data === 0.8 && a === 1){
+                    return 'highlighted'
+                }
+                if (d.index === hoverInd){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                    
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                
+            
+            })
+
+            })
+        
+
+        labels.on("mouseover", function(event, d){
+            if (rotating){
+                return 
+            }
+
+            let hoverInd = d.index;
+
+    
+            arcs.attr("class", function(d) {
+                if (d.index === clickedIndex1 && d.data === 0.8 && a === 1){
+                    return 'highlighted'
+                }
+                if (d.index === hoverInd){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                    
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                
+            
+            })
+
+            })
+        
+        
+        arcs.on("mouseout", function(event, d){
+            if (rotating){
+                        return 
+                    }
+
+            let hoverInd = d.index;
+
+            
+            arcs.attr("class", function(d) {
+                if (d.index === clickedIndex && d.data === 0.8 && a === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+
+        labels.on("mouseout", function(event, d){
+            if (rotating){
+                        return 
+                    }
+
+            let hoverInd = d.index;
+
+            
+            arcs.attr("class", function(d) {
+                if (d.index === clickedIndex && d.data === 0.8 && a === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+
+
+
+
+        arcs.on('click', function(event, d) {
+            let hoveredIndex = d.index;
+            clickedIndex = hoveredIndex
+
+            if (d.data === 0.8){
+                rotating = true
+                arcs.attr("class", function(d) {
+                if (d.index === hoveredIndex){
+                
+                    return 'shadoweffect'
+                }
+                if (d.index === clickedIndex && d.data === 0.8){
+                    return 'highlighted'
+                }
+                
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                else{
+                    return 'normal'
+                }
+                
+            
+            })
+                
+            }      
+
+            let curHoverFirstLabel=0;
+            let currentHoveredGroup=0;
+            if (hoveredIndex > prevHoveredLastIndex){
+                curHoverFirstLabel = prevHoveredLastLabel + (hoveredIndex - prevHoveredLastIndex - 1)*5 + 1 
+                currentHoveredGroup= (curHoverFirstLabel-1)/5 + 1 
+            }
+             
+            else{
+                curHoverFirstLabel = prevHoveredLastLabel - (prevHoveredLastIndex - hoveredIndex - 3)*5
+                currentHoveredGroup = curHoverFirstLabel/5 + 1
+            }
+             
+
+            if (d.data === 1) {
+                a = 0
+                newDataaaa2 = [];
+
+                for (let i=0; i<data.length; i++){
+                    if (data[i] === currentHoveredGroup){
+                        for (let j=0; j<5; j++){
+                            newDataaaa2.push(0.8)
+                    }
+                    }
+                    else{
+                        newDataaaa2.push(1)
+                    }
+                }
+
+        
+                const pie2 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataaaa2);
+                
+
+                arcs.data(pie2)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return arc(d)
+                    });
+
+                
+
+                arcs
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+
+                newDataLabels2 = [];
+
+                let end1 = 0;
+                let start1 = end;
+                let zount1 = 0;
+
+                for (let i=0; i<data.length; i++){
+                    if (data[i] === currentHoveredGroup){
+                        for (let j=0; j<5; j++){
+                            newDataLabels2.push((currentHoveredGroup-1)*5 + j+1)
+                            zount1 += 1
+                        }
+                        prevHoveredLastIndex = i+4
+                        prevHoveredLastLabel = (currentHoveredGroup-1)*5 + 5
+                    }
+                    else{
+                        start1 = end1 + 1
+                        if (zount1 > 0){
+                            start1 += 5
+                            zount1 = 0
+                        }
+                        end1 = start1 + 4
+                        newDataLabels2.push(`${start1}-${end1}`)
+                    }
+                }
+                
+
+                const pie3 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataLabels2);
+
+
+                labels.data(pie2)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                        const [x,y] = arc.centroid(d);
+                        return `translate(${x*1.4}, ${y*1.4}) rotate(${rotateAngle})`
+                        })
+                
+                    .text((d, i) => {
+                        return newDataLabels2[i]
+                    });
+
+
+            }
+            else{
+                a = 1
+                clickedIndex1 = d.index
+                arcs
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                d3.select(this).attr("class", "arc highlighted"); 
+            
+                clickedIndex = d.index;
+                if (d.data === 0.8) {
+                    rotating = true;
+
+                    angle = (d.startAngle + d.endAngle) / 2;
+                    rotateAngle = (angle * 180 / Math.PI) - 90;
+
+                    g.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-rotateAngle})`)
+                        .on('end', () => {
+                            rotating = false;
+                        });
+
+                    const expandedPie = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return newDataaaa2[i]
+                        })(newDataaaa2);
+
+                    arcs.data(expandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('d', arc);
+
+                    labels.data(expandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => {
+                        const [x,y] = arc.centroid(d)
+                        return `translate(${x*1.4}, ${y*1.4}) rotate(${rotateAngle})`})
+                        .text((d, i) => {
+                            return (newDataLabels2[i])
+                        });
+                }
+
+            }
+            
+        });
+
+
+
+        labels.on('click', function(event, d) {
+            let hoveredIndex = d.index;
+            clickedIndex = hoveredIndex
+
+            if (d.data === 0.8){
+                rotating = true
+                arcs.attr("class", function(d) {
+                if (d.index === hoveredIndex){
+                
+                    return 'shadoweffect'
+                }
+                if (d.index === clickedIndex && d.data === 0.8){
+                    return 'highlighted'
+                }
+                
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                else{
+                    return 'normal'
+                }
+                
+            
+            })
+                
+            }      
+
+            let curHoverFirstLabel=0;
+            let currentHoveredGroup=0;
+            if (hoveredIndex > prevHoveredLastIndex){
+                curHoverFirstLabel = prevHoveredLastLabel + (hoveredIndex - prevHoveredLastIndex - 1)*5 + 1 
+                currentHoveredGroup= (curHoverFirstLabel-1)/5 + 1 
+            }
+             
+            else{
+                curHoverFirstLabel = prevHoveredLastLabel - (prevHoveredLastIndex - hoveredIndex - 3)*5
+                currentHoveredGroup = curHoverFirstLabel/5 + 1
+            }
+             
+
+            if (d.data === 1) {
+                newDataaaa2 = [];
+
+                for (let i=0; i<data.length; i++){
+                    if (data[i] === currentHoveredGroup){
+                        for (let j=0; j<5; j++){
+                            newDataaaa2.push(0.8)
+                    }
+                    }
+                    else{
+                        newDataaaa2.push(1)
+                    }
+                }
+
+        
+                const pie2 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataaaa2);
+                
+
+                arcs.data(pie2)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return arc(d)
+                    });
+
+                
+
+                arcs
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+
+                newDataLabels2 = [];
+
+                let end1 = 0;
+                let start1 = end;
+                let zount1 = 0;
+
+                for (let i=0; i<data.length; i++){
+                    if (data[i] === currentHoveredGroup){
+                        for (let j=0; j<5; j++){
+                            newDataLabels2.push((currentHoveredGroup-1)*5 + j+1)
+                            zount1 += 1
+                        }
+                        prevHoveredLastIndex = i+4
+                        prevHoveredLastLabel = (currentHoveredGroup-1)*5 + 5
+                    }
+                    else{
+                        start1 = end1 + 1
+                        if (zount1 > 0){
+                            start1 += 5
+                            zount1 = 0
+                        }
+                        end1 = start1 + 4
+                        newDataLabels2.push(`${start1}-${end1}`)
+                    }
+                }
+                
+
+                const pie3 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataLabels2);
+
+
+                labels.data(pie2)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                        const [x,y] = arc.centroid(d);
+                        return `translate(${x*1.4}, ${y*1.4}) rotate(${rotateAngle})`
+                        })
+                
+                    .text((d, i) => {
+                        return newDataLabels2[i]
+                    });
+
+
+            }
+            else{
+                arcs
+                .attr("class", function(d) {
+                    if (d.index === hoveredIndex){
+                        return 'highlighted'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+            
+                clickedIndex = d.index;
+                if (d.data === 0.8) {
+                    rotating = true;
+
+                    angle = (d.startAngle + d.endAngle) / 2;
+                    rotateAngle = (angle * 180 / Math.PI) - 90;
+
+                    g.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-rotateAngle})`)
+                        .on('end', () => {
+                            rotating = false;
+                        });
+
+                    const expandedPie = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return newDataaaa2[i]
+                        })(newDataaaa2);
+
+                    arcs.data(expandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('d', arc);
+
+                    labels.data(expandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => {
+                        const [x,y] = arc.centroid(d)
+                        return `translate(${x*1.4}, ${y*1.4}) rotate(${rotateAngle})`})
+                        .text((d, i) => {
+                            return (newDataLabels2[i])
+                        });
+                }
+
+            }
+            
+        });
+
+
+
+
+
+
+                
+        // Outer circle (months)
+        const outerRadius = radius ;
+        const outerArc = d3.arc()
+            .innerRadius(outerRadius - 80)
+            .outerRadius(outerRadius-40);
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthData = Array(12).fill(1);
+
+        const outerPie = d3.pie().sort(null).value(d => d)(monthData);
+
+        // Draw the outer arcs (months)
+        const outerArcs = outerG.selectAll('.outerArc')
+            .data(outerPie)
+            .enter()
+            .append('path')
+            .attr('class', 'outerArc')
+            .attr('d', outerArc)
+            .attr('fill', 'white')
+            .attr('stroke', 'black')
+            .style('stroke-width', '0.08px');
+
+        // Add labels to the outer arcs (months)
+        let outerlabels = outerG.selectAll('.monthLabel')
+            .data(outerPie)
+            .enter()
+            .append('text')
+            .attr('class', 'monthLabel')
+            .attr('transform', d => `translate(${outerArc.centroid(d)})`)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .text((d, i) => months[i]);
+
+        let selectedmonthindex = 2 
+        // default selection of a month(march)
+        outerArcs.attr("class", function(d) {
+            if (d.index === selectedmonthindex){
+                return 'highlighted'
+            }
+            }
+            );
+        
+        //months mouse over
+        
+        let monthrotating = false;
+/*
+        outerArcs.on("mouseover", function(event, d){
+            let monthcurhoverindex = d.index;
+
+            if (monthrotating){
+                return
+            }
+
+            outerArcs.attr("class", function(d) {
+            if (d.index === monthcurhoverindex){
+                return 'shadoweffectmonth'
+            }
+            if (d.index === selectedmonthindex){
+                return 'highlighted'
+            }
+            }
+            );
+        })
+*/
+
+
+
+        let initstartAngle3 = 0;
+        let initendAngle3 = 150;
+        let initangle3 = (initstartAngle3 + initendAngle3) / 2;
+        let initrotateAngle3 = (initangle3) - 90;
+
+            // Rotate the outer group to make the clicked month horizontal
+        outerG.transition()
+            .duration(750)
+            .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-initrotateAngle3})`);
+        outerG.selectAll(".monthLabel")
+            .transition()
+            .duration(500)
+            .attr('transform', (d, i) => `translate(${outerArc.centroid(d)}) rotate(${initrotateAngle3})`)
+        
+
+
+      
+        outerArcs.on("mouseover", function(event, d){
+            let monthcurhoverindex = d.index;
+
+            if (monthrotating){
+                return
+            }
+
+            outerArcs.attr("class", function(d) {
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+                if (d.index === monthcurhoverindex){
+                    return 'shadoweffectmonth'
+                }
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+            }
+            );
+        })
+
+        outerlabels.on("mouseover", function(event, d){
+            let monthcurhoverindex = d.index;
+
+            if (monthrotating){
+                return
+            }
+
+            outerArcs.attr("class", function(d) {
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+                if (d.index === monthcurhoverindex){
+                    return 'shadoweffectmonth'
+                }
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+            }
+            );
+        })
+
+        outerArcs.on("mouseout", function(event, d){
+            let monthcurhoverindex = d.index;
+
+            if (monthrotating){
+                return
+            }
+
+            outerArcs.attr("class", function(d) {
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+                
+            }
+            );
+        })
+
+        outerlabels.on("mouseout", function(event, d){
+            let monthcurhoverindex = d.index;
+
+            if (monthrotating){
+                return
+            }
+
+            outerArcs.attr("class", function(d) {
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+                
+            }
+            );
+        })
+
+        outerArcs.on('click', function(event, d) {
+            selectedmonthindex = d.index
+            monthrotating = true;
+
+            outerArcs.attr("class", "arc");
+            d3.select(this).attr("class", "arc highlighted"); 
+
+            const angle3 = (d.startAngle + d.endAngle) / 2;
+            const rotateAngle3 = (angle3 * 180 / Math.PI) - 90;
+
+            // Rotate the outer group to make the clicked month horizontal
+            outerG.transition()
+                .duration(500)
+                .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-rotateAngle3})`);
+            
+            outerG.selectAll(".monthLabel")
+                .transition()
+                .duration(500)
+                .attr('transform', (d, i) => `translate(${outerArc.centroid(d)}) rotate(${rotateAngle3})`)
+
+            monthrotating = false;
+            });
+
+
+        outerlabels.on('click', function(event, d) {
+            selectedmonthindex = d.index
+            monthrotating = true;
+
+            outerArcs.attr("class", "arc");
+            outerArcs.attr("class", function(d){
+                if (d.index === selectedmonthindex){
+                    return 'highlighted'
+                }
+            })
+
+            const angle3 = (d.startAngle + d.endAngle) / 2;
+            const rotateAngle3 = (angle3 * 180 / Math.PI) - 90;
+
+            // Rotate the outer group to make the clicked month horizontal
+            outerG.transition()
+                .duration(500)
+                .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-rotateAngle3})`);
+            
+            outerG.selectAll(".monthLabel")
+                .transition()
+                .duration(500)
+                .attr('transform', (d, i) => `translate(${outerArc.centroid(d)}) rotate(${rotateAngle3})`)
+
+            monthrotating = false;
+            });
+
+
+
+
+
+
+        //years static portion
+        const yearsnumGroups = 6;
+        let yearsdata = [1,2,3,4,5,6];
+
+        let yearscurHovInd = 0;
+        let yearsnewDataaaa2 = [];
+        let yearsclickedIndex = 3
+
+        for (let i=0; i<yearsdata.length; i++){
+            if (i === yearscurHovInd){
+                for (let j=0; j<10; j++){
+                    yearsnewDataaaa2.push(0.8)
+                }
+            }
+            else{
+                yearsnewDataaaa2.push(1)
+            }
+        }
+
+
+        let yearsnewDataLabels2 = [];
+
+        let yearsend = 2000;
+        let yearsstart = yearsend;
+        let yearszount = 0;
+
+        for (let i=0; i<yearsdata.length; i++){
+            if (i === yearscurHovInd){
+                for (let j=0; j<10; j++){
+                    yearsnewDataLabels2.push((yearscurHovInd-1)*10 + j+1 + 2010)
+                    yearszount += 1
+                }
+            }
+            else{
+                yearsstart = yearsend + 1
+                if (yearszount > 0){
+                    yearsstart += 10
+                    yearszount = 0
+                }
+                yearsend = yearsstart + 9
+                yearsnewDataLabels2.push(`${yearsstart}-${yearsend}`)
+            }
+        }
+
+
+
+        let yearspie = d3.pie()
+            .sort(null)
+            .value(d=>d);
+
+        let yearsarc = d3.arc()
+            .innerRadius(innerRadius + 120)
+            .outerRadius(radius+10);
+
+
+        let yearsarcs = yearG.selectAll('path')
+            .data(pie(yearsnewDataaaa2))
+            .enter()
+            .append('path')
+            .attr('d', yearsarc)
+            .attr('fill', "white")
+            .attr('stroke', 'black')
+            .style('stroke-width', '0.08px');
+
+        let initstartAngley = 60;
+        let initendAngley = 95;
+
+        let inityearsangle = (initstartAngley + initendAngley) / 2;
+        let inityearsrotateAngle = (inityearsangle) - 90;
+
+        yearG.transition()
+            .duration(0)
+            .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-inityearsrotateAngle})`)
+            .on('end', () => {
+                yearsrotating = false;
+            });
+
+        let yearsnum = -4;
+        
+        let yearslabeldata = "";
+        let yearslabels = yearG.selectAll('text')
+            .data(pie(yearsnewDataaaa2))
+            .enter()
+            .append('text')
+            .attr('transform', d => `translate(${yearsarc.centroid(d)}) rotate(${inityearsrotateAngle})`)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .text((d, i) => {
+                return `${yearsnewDataLabels2[i]}`})
+            .attr("class", `${yearslabeldata}`)
+
+        
+        
+        
+
+        
+            
+    
+        
+
+
+        // highlighting initially expanded arcs
+
+        yearsarcs.attr("class", function(d) {
+            if (d.data === 0.8){
+                if (d.index === 3){
+                    return 'highlighted'
+                }
+                return 'expandedarc'
+            }
+            });
+
+
+
+        let yearsprevHoveredLastIndex = 9;
+        let yearsprevHoveredLastLabel = 2010;
+        
+        let yearsangle = 0;
+        let yearsrotateAngle = inityearsrotateAngle;
+        let yearsrotateAngle2 = 0;
+        let yearscurrentHoveredGroup = 0
+        
+        let yearsrotating = false
+        let yearsprevselectind = 3
+        let yearsprevhovgroup = 0
+
+/*
+
+        yearsarcs.on("mouseover", function(event, d){
+            if (yearsrotating){
+                return 
+            }
+
+            let yearhoverInd = d.index;
+
+    
+            yearsarcs.attr("class", function(d) {
+                if (d.index === yearsclickedIndex && d.data === 0.8){
+                    return 'highlighted'
+                }
+                if (d.index === yearhoverInd){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                    
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                
+            
+            })
+
+            })
+
+*/      
+        let b = 1;
+
+        yearsarcs.on("mouseover", function(event, d){
+            if (yearsrotating){
+                        return 
+                    }
+
+            let yearhoverInd = d.index;
+
+            
+            yearsarcs.attr("class", function(d) {
+                if (d.index === yearsclickedIndex && d.data === 0.8 && b === 1){
+                    return 'highlighted'
+                }
+                if (d.index === yearhoverInd){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                            
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+        yearslabels.on("mouseover", function(event, d){
+            if (yearsrotating){
+                        return 
+                    }
+
+            let yearhoverInd = d.index;
+
+            
+            yearsarcs.attr("class", function(d) {
+                if (d.index === yearsclickedIndex && d.data === 0.8 && b === 1){
+                    return 'highlighted'
+                }
+                if (d.index === yearhoverInd){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                            
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+    
+        yearsarcs.on("mouseout", function(event, d){
+            if (yearsrotating){
+                        return 
+                    }
+
+            let yearhoverInd = d.index;
+
+            
+            yearsarcs.attr("class", function(d) {
+                if (d.index === yearsclickedIndex && d.data === 0.8 && b === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+        yearslabels.on("mouseout", function(event, d){
+            if (yearsrotating){
+                        return 
+                    }
+
+            let yearhoverInd = d.index;
+
+            
+            yearsarcs.attr("class", function(d) {
+                if (d.index === yearsclickedIndex && d.data === 0.8 && b === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+  
+
+
+        yearsarcs.on('click', function(event, d) {
+            
+            let yearshoveredIndex = d.index;
+            yearsclickedIndex = yearshoveredIndex
+
+            let yearscurHoverFirstLabel=0;
+        
+            if (yearshoveredIndex > yearsprevHoveredLastIndex){
+                yearscurHoverFirstLabel = yearsprevHoveredLastLabel + (yearshoveredIndex - yearsprevHoveredLastIndex - 1)*10 + 1 
+                yearscurrentHoveredGroup= (yearscurHoverFirstLabel-1-2000)/10 + 1 
+            }
+             
+            else{
+                yearscurHoverFirstLabel = yearsprevHoveredLastLabel - 2000 - (yearsprevHoveredLastIndex - yearshoveredIndex - 8)*10
+                yearscurrentHoveredGroup = yearscurHoverFirstLabel/10 + 1
+            }
+
+
+            if (yearsprevhovgroup < yearscurrentHoveredGroup){
+                yearsprevselectind = yearsprevhovgroup
+            }
+            else if (yearsprevhovgroup > yearscurrentHoveredGroup){
+                yearsprevselectind = 8 + yearsprevhovgroup
+            }
+            else{
+                yearsprevselectind = yearsprevselectind
+            }
+            
+
+
+            if (d.data === 0.8){
+                yearsrotating = true;
+                yearsarcs.attr("class", function(d) {
+                    if (d.index === yearshoveredIndex){
+                    
+                        return 'shadoweffect'
+                    }
+                    if (d.data === 1 && d.index === yearscurrentHoveredGroup){
+                        return 'highlighted'
+                    }
+                    if (d.index === yearsclickedIndex && d.data === 0.8){
+                        return 'highlighted'
+                    }
+                    
+                    if (d.data === 0.8){
+                        return 'expandedarc'
+                    }
+                    else{
+                        return 'normal'
+                    }
+                })
+                
+            }
+
+        
+
+            
+
+            
+            
+
+
+
+
+            if (d.data === 1){
+                b = 0
+                yearsnewDataaaa2 = []
+
+                for (let i=0; i<yearsdata.length; i++){
+                    if (yearsdata[i] === yearscurrentHoveredGroup){
+                        for (let j=0; j<10; j++){
+                            yearsnewDataaaa2.push(0.8)
+                    }
+                    }
+                    else{
+                        yearsnewDataaaa2.push(1)
+                    }
+                }
+
+        
+                const yearspie2 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataaaa2);
+                
+
+                yearsarcs.data(yearspie2)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return yearsarc(d)
+                    });
+
+
+                yearsarcs
+                .attr("class", function(d) {
+                    if (d.index === yearsprevselectind){
+                        return 'prevgroups'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+
+
+
+                
+
+                let yearsend1 = 2000;
+                let yearsstart1 = yearsend1;
+                let yearszount1 = 0;
+
+                yearsnewDataLabels2 = []
+                for (let i=0; i<yearsdata.length; i++){
+                    if (yearsdata[i] === yearscurrentHoveredGroup){
+                        for (let j=0; j<10; j++){
+                            yearsnewDataLabels2.push((yearscurrentHoveredGroup-1)*10 + j+1 + 2000)
+                            yearszount1 += 1
+                        }
+                        yearsprevHoveredLastIndex = i+9
+                        yearsprevHoveredLastLabel = (yearscurrentHoveredGroup-1)*10 + 2000 + 10
+                    }
+                    else{
+                        yearsstart1 = yearsend1 + 1
+                        if (yearszount1 > 0){
+                            yearsstart1 += 10
+                            yearszount1 = 0
+                        }
+                        yearsend1 = yearsstart1 + 9
+                        yearsnewDataLabels2.push(`${yearsstart1}-${yearsend1}`)
+                    }
+                }
+                
+
+                const yearspie3 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataLabels2);
+
+
+                yearslabels.data(yearspie2)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                    yearsangle2 = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle2 = (yearsangle2 * 180 / Math.PI);
+                    return (`translate(${yearsarc.centroid(d)}) rotate(${yearsrotateAngle})`)
+            })
+                
+                    .text((d, i) => {
+                        return yearsnewDataLabels2[i]
+                    });
+                
+
+            }
+
+            else {
+                b = 1
+              //  yearsprevhovgroup = yearscurrentHoveredGroup
+              //  yearsprevselectind = d.index
+                yearsarcs
+                .attr("class", function(d) {
+                    if (d.index === yearsprevselectind){
+                        return 'prevgroups'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                d3.select(this).attr("class", "arc highlighted"); 
+                
+                
+                
+                if (d.data === 0.8) {
+
+                    yearsangle = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle = (yearsangle * 180 / Math.PI) - 90;
+
+                    yearG.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-yearsrotateAngle})`)
+                        .on('end', () => {
+                            yearsrotating = false;
+                        });
+
+                    const yearsexpandedPie = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return yearsnewDataaaa2[i]
+                        })(yearsnewDataaaa2);
+
+                    yearsarcs.data(yearsexpandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('d', yearsarc
+                        );
+
+                    yearslabels.data(yearsexpandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => `translate(${yearsarc.centroid(d)}) rotate(${yearsrotateAngle})`)
+                        .text((d, i) => {
+                            return (yearsnewDataLabels2[i])
+                        });
+                }
+            }
+            
+            
+        });
+
+
+        yearslabels.on('click', function(event, d) {
+            
+            let yearshoveredIndex = d.index;
+            yearsclickedIndex = yearshoveredIndex
+
+            let yearscurHoverFirstLabel=0;
+        
+            if (yearshoveredIndex > yearsprevHoveredLastIndex){
+                yearscurHoverFirstLabel = yearsprevHoveredLastLabel + (yearshoveredIndex - yearsprevHoveredLastIndex - 1)*10 + 1 
+                yearscurrentHoveredGroup= (yearscurHoverFirstLabel-1-2000)/10 + 1 
+            }
+             
+            else{
+                yearscurHoverFirstLabel = yearsprevHoveredLastLabel - 2000 - (yearsprevHoveredLastIndex - yearshoveredIndex - 8)*10
+                yearscurrentHoveredGroup = yearscurHoverFirstLabel/10 + 1
+            }
+
+
+            if (yearsprevhovgroup < yearscurrentHoveredGroup){
+                yearsprevselectind = yearsprevhovgroup
+            }
+            else{
+                yearsprevselectind = 9 + yearsprevhovgroup
+            }
+
+
+
+          /*  if (d.data === 0.8){
+                yearsrotating = true;
+                yearsarcs.attr("class", function(d) {
+                    if (d.index === yearsprevselectind){
+                        return 'prevgroup'
+                    }
+                    if (d.index === yearshoveredIndex){
+                    
+                        return 'shadoweffect'
+                    }
+                    if (d.data === 1 && d.index === yearscurrentHoveredGroup){
+                        return 'highlighted'
+                    }
+                    if (d.index === yearsclickedIndex && d.data === 0.8){
+                        return 'highlighted'
+                    }
+                    
+                    if (d.data === 0.8){
+                        return 'expandedarc'
+                    }
+                    else{
+                        return 'normal'
+                    }
+                })
+                
+            }
+                */
+
+        
+
+            
+
+            
+            
+
+
+
+
+            if (d.data === 1){
+                b = 0
+                yearsnewDataaaa2 = []
+
+                for (let i=0; i<yearsdata.length; i++){
+                    if (yearsdata[i] === yearscurrentHoveredGroup){
+                        for (let j=0; j<10; j++){
+                            yearsnewDataaaa2.push(0.8)
+                    }
+                    }
+                    else{
+                        yearsnewDataaaa2.push(1)
+                    }
+                }
+
+        
+                const yearspie2 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataaaa2);
+                
+
+                yearsarcs.data(yearspie2)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return yearsarc(d)
+                    });
+
+
+                yearsarcs
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+
+
+
+                
+
+                let yearsend1 = 2000;
+                let yearsstart1 = yearsend1;
+                let yearszount1 = 0;
+
+                yearsnewDataLabels2 = []
+                for (let i=0; i<yearsdata.length; i++){
+                    if (yearsdata[i] === yearscurrentHoveredGroup){
+                        for (let j=0; j<10; j++){
+                            yearsnewDataLabels2.push((yearscurrentHoveredGroup-1)*10 + j+1 + 2000)
+                            yearszount1 += 1
+                        }
+                        yearsprevHoveredLastIndex = i+9
+                        yearsprevHoveredLastLabel = (yearscurrentHoveredGroup-1)*10 + 2000 + 10
+                    }
+                    else{
+                        yearsstart1 = yearsend1 + 1
+                        if (yearszount1 > 0){
+                            yearsstart1 += 10
+                            yearszount1 = 0
+                        }
+                        yearsend1 = yearsstart1 + 9
+                        yearsnewDataLabels2.push(`${yearsstart1}-${yearsend1}`)
+                    }
+                }
+                
+
+                const yearspie3 = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataLabels2);
+
+
+                yearslabels.data(yearspie2)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                    yearsangle2 = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle2 = (yearsangle2 * 180 / Math.PI);
+                    return (`translate(${yearsarc.centroid(d)}) rotate(${yearsrotateAngle})`)
+            })
+                
+                    .text((d, i) => {
+                        return yearsnewDataLabels2[i]
+                    });
+                
+
+            }
+
+            else {
+                b = 1
+                yearsarcs
+                .attr("class", function(d) {
+                    if (d.index === yearshoveredIndex){
+                        return 'highlighted'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+                
+                
+                
+                if (d.data === 0.8) {
+
+                    yearsangle = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle = (yearsangle * 180 / Math.PI) - 90;
+
+                    yearG.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${width / 2}, ${height / 2}) rotate(${-yearsrotateAngle})`)
+                        .on('end', () => {
+                            yearsrotating = false;
+                        });
+
+                    const yearsexpandedPie = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return yearsnewDataaaa2[i]
+                        })(yearsnewDataaaa2);
+
+                    yearsarcs.data(yearsexpandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('d', yearsarc
+                        );
+
+                    yearslabels.data(yearsexpandedPie)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => `translate(${yearsarc.centroid(d)}) rotate(${yearsrotateAngle})`)
+                        .text((d, i) => {
+                            return (yearsnewDataLabels2[i])
+                        });
+                }
+            }
+            
+        });
+        
+
+
+// time picker
+
+        const svgtime = d3.select("#svgtime");
+        const widthtime = +svgtime.attr('width');
+        const heighttime = +svgtime.attr('height');
+        const radiustime = Math.min(widthtime, heighttime) / 2 - 20;
+        const expandedRadiustime = radiustime + 0;  
+        const innerRadiustime = 0;  
+        
+        const gtime = svgtime.append('g')
+            .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2})`);
+        const yearGtime = svgtime.append('g')
+            .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2})`);
+
+
+
+        const numGroupstime = 6;
+        let datatime = [1,2,3,4,5,6];
+
+        let curHovIndtime = 1;
+        let newDataaaa2time = [];
+        let clickedIndextime = 9
+
+        for (let i=0; i<datatime.length; i++){
+            if (datatime[i] === curHovIndtime){
+                for (let j=0; j<10; j++){
+                    newDataaaa2time.push(0.8)
+                }
+            }
+            else{
+                newDataaaa2time.push(1)
+            }
+        }
+
+
+        let newDataLabels2time = [];
+
+        let endtime = 0;
+        let starttime = endtime;
+        let zounttime = 0;
+
+        for (let i=0; i<datatime.length; i++){
+            if (datatime[i] === curHovIndtime){
+                for (let j=0; j<10; j++){
+                    newDataLabels2time.push((curHovIndtime-1)*10 + j+1)
+                    zounttime += 1
+                }
+            }
+            else{
+                starttime = endtime + 1
+                if (zounttime > 0){
+                    starttime += 10
+                    zounttime = 0
+                }
+                endtime = starttime + 9
+                newDataLabels2time.push(`${starttime}-${endtime}`)
+            }
+        }
+
+
+
+        let pietime = d3.pie()
+            .sort(null)
+            .value(d=>d);
+
+        let arctime = d3.arc()
+            .innerRadius(innerRadiustime)
+            .outerRadius(radiustime-45);
+
+
+        let arcstime = gtime.selectAll('path')
+            .data(pie(newDataaaa2time))
+            .enter()
+            .append('path')
+            .attr('d', arctime)
+            .attr('fill', "white")
+            .attr('stroke', 'black')
+            .style('stroke-width', '0.08px');
+
+        let initstartAngletime = 180;
+        let initendAngletime = 240;
+        let initangletime = (initstartAngletime + initendAngletime) / 2;
+        let initrotateAngletime = (initangletime) + 90;
+
+        gtime.transition()
+            .duration(0)
+            .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-initrotateAngletime})`)
+            .on('end', () => {
+                rotatingtime = false;
+            });
+
+        let numtime = -4;
+        let labeldatatime = "";
+        let labelstime = gtime.selectAll('text')
+            .data(pie(newDataaaa2time))
+            .enter()
+            .append('text')
+            .attr('transform', d => {
+                const [x,y] = arctime.centroid(d);
+                return `translate(${x*1.6}, ${y*1.6}) rotate(${initrotateAngletime})`
+            })
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .text((d, i) => {
+                return `${newDataLabels2time[i]}`})
+            .attr("class", `${labeldatatime}`);
+        
+            
+        //highlighting initially expanded dates
+        arcstime.attr("class", function(d) {
+            if (d.data === 0.8){
+                if (d.index === 9){
+                    return 'highlighted'
+                }
+                return 'expandedarc'
+            }
+            });
+
+        // mouse hover for dates circle
+
+        let prevHoveredLastIndextime = 9;
+        let prevHoveredLastLabeltime = 10;
+        let angletime = 0;
+        let rotateAngletime = initrotateAngletime;
+        let rotatingtime = false;
+        
+
+       // arcstime.on("mouseover", function(event, d){
+    //        if (rotatingtime){
+      //          return 
+        //    }
+
+   //         let hoverIndtime = d.index;
+
+    
+     //       arcstime.attr("class", function(d) {
+       //         if (d.index === clickedIndextime && d.data === 0.8){
+         //           return 'highlighted'
+           //     }
+             //   if (d.index === hoverIndtime){
+               //     if (d.data === 0.8){
+                 //       return 'shadoweffect'
+                   // }
+              //      else{
+                //        return 'shadoweffectmonth'
+                  //  }
+                    
+             //   }
+               // else if(d.data === 0.8) {
+          //          return 'expandedarc'
+            //    }
+                
+            
+          //  })
+
+            //})
+        
+        let c = 1;
+
+        arcstime.on("mouseover", function(event, d){
+            if (rotatingtime){
+                return 
+            }
+
+            let hoverIndtime = d.index;
+
+    
+            arcstime.attr("class", function(d) {
+                if (d.index === clickedIndextime && d.data === 0.8 && c === 1){
+                    return 'highlighted'
+                }
+                if (d.index === hoverIndtime){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                    
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                
+            
+            })
+
+            })
+
+        labelstime.on("mouseover", function(event, d){
+            if (rotatingtime){
+                return 
+            }
+
+            let hoverIndtime = d.index;
+
+    
+            arcstime.attr("class", function(d) {
+                if (d.index === clickedIndextime && d.data === 0.8 && c === 1){
+                    return 'highlighted'
+                }
+                if (d.index === hoverIndtime){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                    
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                
+            
+            })
+
+            })
+            
+        arcstime.on("mouseout", function(event, d){
+            if (rotatingtime){
+                        return 
+                    }
+
+            let hoverIndtime = d.index;
+
+            
+            arcstime.attr("class", function(d) {
+                if (d.index === clickedIndextime && d.data === 0.8 && c === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+        labelstime.on("mouseout", function(event, d){
+            if (rotatingtime){
+                        return 
+                    }
+
+            let hoverIndtime = d.index;
+
+            
+            arcstime.attr("class", function(d) {
+                if (d.index === clickedIndextime && d.data === 0.8 && c === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+
+
+        arcstime.on('click', function(event, d) {
+            let hoveredIndextime = d.index;
+            clickedIndextime = hoveredIndextime
+
+            if (d.data === 0.8){
+                rotatingtime = true
+                arcstime.attr("class", function(d) {
+                if (d.index === hoveredIndextime){
+                
+                    return 'shadoweffect'
+                }
+                if (d.index === clickedIndextime && d.data === 0.8){
+                    return 'highlighted'
+                }
+                
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                else{
+                    return 'normal'
+                }
+                
+            
+            })
+                
+            }      
+
+            let curHoverFirstLabeltime=0;
+            let currentHoveredGrouptime=0;
+            if (hoveredIndextime > prevHoveredLastIndextime){
+                curHoverFirstLabeltime = prevHoveredLastLabeltime + (hoveredIndextime - prevHoveredLastIndextime - 1)*10 + 1 
+                currentHoveredGrouptime = (curHoverFirstLabeltime-1)/10 + 1 
+            }
+             
+            else{
+                curHoverFirstLabeltime = prevHoveredLastLabeltime - (prevHoveredLastIndextime - hoveredIndextime - 8)*10
+                currentHoveredGrouptime = curHoverFirstLabeltime/10 + 1
+            }
+            
+
+
+            if (d.data === 1) {
+                c = 0
+                newDataaaa2time = [];
+
+                for (let i=0; i<datatime.length; i++){
+                    if (datatime[i] === currentHoveredGrouptime){
+                        for (let j=0; j<10; j++){
+                            newDataaaa2time.push(0.8)
+                    }
+                    }
+                    else{
+                        newDataaaa2time.push(1)
+                    }
+                }
+
+        
+                const pie2time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataaaa2time);
+                
+
+                arcstime.data(pie2time)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return arctime(d)
+                    });
+
+                
+
+                arcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+
+                newDataLabels2time = [];
+
+                let end1time = 0;
+                let start1time = end1time;
+                let zount1time = 0;
+
+                for (let i=0; i<datatime.length; i++){
+                    if (datatime[i] === currentHoveredGrouptime){
+                        for (let j=0; j<10; j++){
+                            newDataLabels2time.push((currentHoveredGrouptime-1)*10 + j+1)
+                            zount1time += 1
+                        }
+                        prevHoveredLastIndextime = i+9
+                        prevHoveredLastLabeltime = (currentHoveredGrouptime-1)*10 + 10
+                    }
+                    else{
+                        start1time = end1time + 1
+                        if (zount1time > 0){
+                            start1time += 10
+                            zount1time = 0
+                        }
+                        end1time = start1time + 9
+                        newDataLabels2time.push(`${start1time}-${end1time}`)
+                    }
+                }
+                
+
+                const pie3time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataLabels2time);
+
+
+                labelstime.data(pie2time)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                        const [x,y] = arctime.centroid(d);
+                        return `translate(${x*1.6}, ${y*1.6}) rotate(${rotateAngletime})`
+                        })
+                
+                    .text((d, i) => {
+                        return newDataLabels2time[i]
+                    });
+
+
+            }
+
+            
+            else{
+                c = 1
+                arcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                d3.select(this).attr("class", "arc highlighted"); 
+            
+                clickedIndextime = d.index;
+                if (d.data === 0.8) {
+                    rotatingtime = true;
+
+                    angletime = (d.startAngle + d.endAngle) / 2;
+                    rotateAngletime = (angletime * 180 / Math.PI) + 90;
+
+                    gtime.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-rotateAngletime})`)
+                        .on('end', () => {
+                            rotatingtime = false;
+                        });
+
+                    const expandedPietime = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return newDataaaa2time[i]
+                        })(newDataaaa2time);
+
+                    arcstime.data(expandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('d', arctime);
+
+                    labelstime.data(expandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => {
+                        const [x,y] = arctime.centroid(d)
+                        return `translate(${x*1.6}, ${y*1.6}) rotate(${rotateAngletime})`})
+                        .text((d, i) => {
+                            return (newDataLabels2time[i])
+                        });
+                }
+
+            }
+            
+        });
+
+
+
+        labelstime.on('click', function(event, d) {
+            let hoveredIndextime = d.index;
+            clickedIndextime = hoveredIndextime
+
+            if (d.data === 0.8){
+                rotatingtime = true
+                arcstime.attr("class", function(d) {
+                if (d.index === hoveredIndextime){
+                
+                    return 'shadoweffect'
+                }
+                if (d.index === clickedIndextime && d.data === 0.8){
+                    return 'highlighted'
+                }
+                
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                else{
+                    return 'normal'
+                }
+                
+            
+            })
+                
+            }      
+
+            let curHoverFirstLabeltime=0;
+            let currentHoveredGrouptime=0;
+            if (hoveredIndextime > prevHoveredLastIndextime){
+                curHoverFirstLabeltime = prevHoveredLastLabeltime + (hoveredIndextime - prevHoveredLastIndextime - 1)*10 + 1 
+                currentHoveredGrouptime = (curHoverFirstLabeltime-1)/10 + 1 
+            }
+             
+            else{
+                curHoverFirstLabeltime = prevHoveredLastLabeltime - (prevHoveredLastIndextime - hoveredIndextime - 8)*10
+                currentHoveredGrouptime = curHoverFirstLabeltime/10 + 1
+            }
+            
+
+
+            if (d.data === 1) {
+                c = 0
+                newDataaaa2time = [];
+
+                for (let i=0; i<datatime.length; i++){
+                    if (datatime[i] === currentHoveredGrouptime){
+                        for (let j=0; j<10; j++){
+                            newDataaaa2time.push(0.8)
+                    }
+                    }
+                    else{
+                        newDataaaa2time.push(1)
+                    }
+                }
+
+        
+                const pie2time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataaaa2time);
+                
+
+                arcstime.data(pie2time)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return arctime(d)
+                    });
+
+                
+
+                arcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+
+                newDataLabels2time = [];
+
+                let end1time = 0;
+                let start1time = end1time;
+                let zount1time = 0;
+
+                for (let i=0; i<datatime.length; i++){
+                    if (datatime[i] === currentHoveredGrouptime){
+                        for (let j=0; j<10; j++){
+                            newDataLabels2time.push((currentHoveredGrouptime-1)*10 + j+1)
+                            zount1time += 1
+                        }
+                        prevHoveredLastIndextime = i+9
+                        prevHoveredLastLabeltime = (currentHoveredGrouptime-1)*10 + 10
+                    }
+                    else{
+                        start1time = end1time + 1
+                        if (zount1time > 0){
+                            start1time += 10
+                            zount1time = 0
+                        }
+                        end1time = start1time + 9
+                        newDataLabels2time.push(`${start1time}-${end1time}`)
+                    }
+                }
+                
+
+                const pie3time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(newDataLabels2time);
+
+
+                labelstime.data(pie2time)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                        const [x,y] = arctime.centroid(d);
+                        return `translate(${x*1.6}, ${y*1.6}) rotate(${rotateAngletime})`
+                        })
+                
+                    .text((d, i) => {
+                        return newDataLabels2time[i]
+                    });
+
+
+            }
+
+            
+            else{
+                c = 1
+                arcstime
+                .attr("class", function(d) {
+                    if (d.index === hoveredIndextime){
+                        return 'highlighted'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                
+            
+                clickedIndextime = d.index;
+                if (d.data === 0.8) {
+                    rotatingtime = true;
+
+                    angletime = (d.startAngle + d.endAngle) / 2;
+                    rotateAngletime = (angletime * 180 / Math.PI) + 90;
+
+                    gtime.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-rotateAngletime})`)
+                        .on('end', () => {
+                            rotatingtime = false;
+                        });
+
+                    const expandedPietime = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return newDataaaa2time[i]
+                        })(newDataaaa2time);
+
+                    arcstime.data(expandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('d', arctime);
+
+                    labelstime.data(expandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => {
+                        const [x,y] = arctime.centroid(d)
+                        return `translate(${x*1.6}, ${y*1.6}) rotate(${rotateAngletime})`})
+                        .text((d, i) => {
+                            return (newDataLabels2time[i])
+                        });
+                }
+
+            }
+            
+        });
+
+
+
+        //hours static portion
+        const yearsnumGroupstime = 6;
+        let yearsdatatime = [1,2,3,4,5,6];
+
+        let yearscurHovIndtime = 0;
+        let yearsnewDataaaa2time = [];
+        let yearsclickedIndextime = 3
+
+        for (let i=0; i<yearsdatatime.length; i++){
+            if (i === yearscurHovIndtime){
+                for (let j=0; j<4; j++){
+                    yearsnewDataaaa2time.push(0.8)
+                }
+            }
+            else{
+                yearsnewDataaaa2time.push(1)
+            }
+        }
+
+
+        let yearsnewDataLabels2time = [];
+
+        let yearsendtime = 0;
+        let yearsstarttime = yearsendtime;
+        let yearszounttime = 0;
+
+        for (let i=0; i<yearsdatatime.length; i++){
+            if (i === yearscurHovIndtime){
+                for (let j=0; j<4; j++){
+                    yearsnewDataLabels2time.push((yearscurHovIndtime)*4 + j+1)
+                    yearszounttime += 1
+                }
+            }
+            else{
+                yearsstarttime = yearsendtime + 1
+                if (yearszounttime > 0){
+                    yearsstarttime += 4
+                    yearszounttime = 0
+                }
+                yearsendtime = yearsstarttime + 3
+                yearsnewDataLabels2time.push(`${yearsstarttime}-${yearsendtime}`)
+            }
+        }
+
+
+
+        let yearspietime = d3.pie()
+            .sort(null)
+            .value(d=>d);
+
+        let yearsarctime = d3.arc()
+            .innerRadius(innerRadiustime + 120)
+            .outerRadius(radiustime+10);
+
+
+        let yearsarcstime = yearGtime.selectAll('path')
+            .data(pie(yearsnewDataaaa2time))
+            .enter()
+            .append('path')
+            .attr('d', yearsarctime)
+            .attr('fill', "white")
+            .attr('stroke', 'black')
+            .style('stroke-width', '0.08px');
+
+        let initstartAngleytime = 80;
+        let initendAngleytime = 165;
+
+        let inityearsangletime = (initstartAngleytime + initendAngleytime) / 2;
+        let inityearsrotateAngletime = (inityearsangletime)+90;
+
+        yearGtime.transition()
+            .duration(0)
+            .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-inityearsrotateAngletime})`)
+            .on('end', () => {
+                yearsrotatingtime = false;
+            });
+
+        let yearsnumtime = -4;
+        
+        let yearslabeldatatime = "";
+        let yearslabelstime = yearGtime.selectAll('text')
+            .data(pie(yearsnewDataaaa2time))
+            .enter()
+            .append('text')
+            .attr('transform', d => `translate(${yearsarctime.centroid(d)}) rotate(${inityearsrotateAngletime})`)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .text((d, i) => {
+                return `${yearsnewDataLabels2time[i]}`})
+            .attr("class", `${yearslabeldatatime}`)
+
+        
+        
+        
+
+        
+            
+    
+        
+
+
+        // highlighting initially expanded arcs
+
+        yearsarcstime.attr("class", function(d) {
+            if (d.data === 0.8){
+                if (d.index === 3){
+                    return 'highlighted'
+                }
+                return 'expandedarc'
+            }
+            });
+
+
+
+        let yearsprevHoveredLastIndextime = 3;
+        let yearsprevHoveredLastLabeltime = 4;
+        
+        let yearsangletime = 0;
+        let yearsrotateAngletime = inityearsrotateAngletime;
+        let yearsrotateAngle2time = 0;
+        let yearscurrentHoveredGrouptime = 0
+        let yearsprevhovgrouptime = 0
+        let yearsrotatingtime = false
+        let yearsprevselectindtime;
+
+
+
+        //yearsarcstime.on("mouseover", function(event, d){
+          //  if (yearsrotatingtime){
+            //    return 
+            //}
+
+            //let yearhoverIndtime = d.index;
+
+    
+           // yearsarcstime.attr("class", function(d) {
+             //   if (d.index === yearsclickedIndextime && d.data === 0.8){
+               //     return 'highlighted'
+               // }
+               // if (d.index === yearhoverIndtime){
+                //    if (d.data === 0.8){
+                 //       return 'shadoweffect'
+                 //   }
+                  //  else{
+                   //     return 'shadoweffectmonth'
+                   // }
+                    
+           //     }
+             //   else if(d.data === 0.8) {
+               //     return 'expandedarc'
+                //}
+                
+            
+          //  })
+
+            //})
+        
+        let e = 1;
+        
+        yearsarcstime.on("mouseover", function(event, d){
+            if (yearsrotatingtime){
+                        return 
+                    }
+
+            let yearhoverIndtime = d.index;
+
+            
+            yearsarcstime.attr("class", function(d) {
+                if (d.index === yearsclickedIndextime && d.data === 0.8 && e === 1){
+                    return 'highlighted'
+                }
+                if (d.index === yearhoverIndtime){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                            
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+        yearslabelstime.on("mouseover", function(event, d){
+            if (yearsrotatingtime){
+                        return 
+                    }
+
+            let yearhoverIndtime = d.index;
+
+            
+            yearsarcstime.attr("class", function(d) {
+                if (d.index === yearsclickedIndextime && d.data === 0.8 && e === 1){
+                    return 'highlighted'
+                }
+                if (d.index === yearhoverIndtime){
+                    if (d.data === 0.8){
+                        return 'shadoweffect'
+                    }
+                    else{
+                        return 'shadoweffectmonth'
+                    }
+                            
+                }
+                else if(d.data === 0.8) {
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+
+        yearsarcstime.on("mouseout", function(event, d){
+            if (yearsrotatingtime){
+                        return 
+                    }
+
+            let yearhoverIndtime = d.index;
+
+            
+            yearsarcstime.attr("class", function(d) {
+                if (d.index === yearsclickedIndextime && d.data === 0.8 && e === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+        yearslabelstime.on("mouseout", function(event, d){
+            if (yearsrotatingtime){
+                        return 
+                    }
+
+            let yearhoverIndtime = d.index;
+
+            
+            yearsarcstime.attr("class", function(d) {
+                if (d.index === yearsclickedIndextime && d.data === 0.8 && e === 1){
+                    return 'highlighted'
+                }
+                if (d.data === 0.8){
+                    return 'expandedarc'
+                }
+                        
+                    
+            })
+
+        })
+
+
+
+        
+
+        yearsarcstime.on('click', function(event, d) {
+            
+            let yearshoveredIndextime = d.index;
+            yearsclickedIndextime = yearshoveredIndextime
+
+            let yearscurHoverFirstLabeltime=0;
+        
+            if (yearshoveredIndextime > yearsprevHoveredLastIndextime){
+                yearscurHoverFirstLabeltime = yearsprevHoveredLastLabeltime + (yearshoveredIndextime - yearsprevHoveredLastIndextime - 1)*4 + 1 
+                yearscurrentHoveredGrouptime = (yearscurHoverFirstLabeltime-1)/4 + 1 
+            }
+             
+            else{
+                yearscurHoverFirstLabeltime = yearsprevHoveredLastLabeltime - (yearsprevHoveredLastIndextime - yearshoveredIndextime - 2)*4
+                yearscurrentHoveredGrouptime = yearscurHoverFirstLabeltime/4 + 1
+            }
+
+
+            if (yearsprevhovgrouptime < yearscurrentHoveredGrouptime){
+                yearsprevselectindtime = yearsprevhovgrouptime
+            }
+            else{
+                yearsprevselectindtime = 3 + yearsprevhovgrouptime
+            }
+
+
+
+            if (d.data === 0.8){
+                yearsrotatingtime = true;
+                yearsarcstime.attr("class", function(d) {
+                    if (d.index === yearsprevselectindtime){
+                        return 'prevgroup'
+                    }
+                    if (d.index === yearshoveredIndextime){
+                    
+                        return 'shadoweffect'
+                    }
+                    if (d.data === 1 && d.index === yearscurrentHoveredGrouptime){
+                        return 'highlighted'
+                    }
+                    if (d.index === yearsclickedIndextime && d.data === 0.8){
+                        return 'highlighted'
+                    }
+                    
+                    if (d.data === 0.8){
+                        return 'expandedarc'
+                    }
+                    else{
+                        return 'normal'
+                    }
+                })
+                
+            }
+
+        
+
+            
+
+            
+            
+
+
+
+
+            if (d.data === 1){
+                e = 0
+                yearsnewDataaaa2time = []
+
+                for (let i=0; i<yearsdatatime.length; i++){
+                    if (yearsdatatime[i] === yearscurrentHoveredGrouptime){
+                        for (let j=0; j<4; j++){
+                            yearsnewDataaaa2time.push(0.8)
+                    }
+                    }
+                    else{
+                        yearsnewDataaaa2time.push(1)
+                    }
+                }
+
+        
+                const yearspie2time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataaaa2time);
+                
+
+                yearsarcstime.data(yearspie2time)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return yearsarctime(d)
+                    });
+
+
+                yearsarcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+
+
+
+                
+
+                let yearsend1time = 0;
+                let yearsstart1time = yearsend1time;
+                let yearszount1time = 0;
+
+                yearsnewDataLabels2time = []
+                for (let i=0; i<yearsdatatime.length; i++){
+                    if (yearsdatatime[i] === yearscurrentHoveredGrouptime){
+                        for (let j=0; j<4; j++){
+                            yearsnewDataLabels2time.push((yearscurrentHoveredGrouptime-1)*4 + j+1)
+                            yearszount1time += 1
+                        }
+                        yearsprevHoveredLastIndextime = i+3
+                        yearsprevHoveredLastLabeltime = (yearscurrentHoveredGrouptime-1)*4 + 4
+                    }
+                    else{
+                        yearsstart1time = yearsend1time + 1
+                        if (yearszount1time > 0){
+                            yearsstart1time += 4
+                            yearszount1time = 0
+                        }
+                        yearsend1time = yearsstart1time + 3
+                        yearsnewDataLabels2time.push(`${yearsstart1time}-${yearsend1time}`)
+                    }
+                }
+                
+
+                const yearspie3time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataLabels2time);
+
+
+                yearslabelstime.data(yearspie2time)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                    yearsangle2time = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle2time = (yearsangle2time * 180 / Math.PI);
+                    return (`translate(${yearsarctime.centroid(d)}) rotate(${yearsrotateAngletime})`)
+            })
+                
+                    .text((d, i) => {
+                        return yearsnewDataLabels2time[i]
+                    });
+                
+
+            }
+
+            else {
+                 e = 1
+                yearsarcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+                d3.select(this).attr("class", "arc highlighted"); 
+                
+                
+                
+                if (d.data === 0.8) {
+
+                    yearsangletime = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngletime = (yearsangletime * 180 / Math.PI) + 90;
+
+                    yearGtime.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-yearsrotateAngletime})`)
+                        .on('end', () => {
+                            yearsrotatingtime = false;
+                        });
+
+                    const yearsexpandedPietime = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return yearsnewDataaaa2time[i]
+                        })(yearsnewDataaaa2time);
+
+                    yearsarcstime.data(yearsexpandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('d', yearsarctime
+                        );
+
+                    yearslabelstime.data(yearsexpandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => `translate(${yearsarctime.centroid(d)}) rotate(${yearsrotateAngletime})`)
+                        .text((d, i) => {
+                            return (yearsnewDataLabels2time[i])
+                        });
+                }
+            }
+            
+        });
+        
+
+
+
+        yearslabelstime.on('click', function(event, d) {
+            
+            let yearshoveredIndextime = d.index;
+            yearsclickedIndextime = yearshoveredIndextime
+
+            let yearscurHoverFirstLabeltime=0;
+        
+            if (yearshoveredIndextime > yearsprevHoveredLastIndextime){
+                yearscurHoverFirstLabeltime = yearsprevHoveredLastLabeltime + (yearshoveredIndextime - yearsprevHoveredLastIndextime - 1)*4 + 1 
+                yearscurrentHoveredGrouptime = (yearscurHoverFirstLabeltime-1)/4 + 1 
+            }
+             
+            else{
+                yearscurHoverFirstLabeltime = yearsprevHoveredLastLabeltime - (yearsprevHoveredLastIndextime - yearshoveredIndextime - 2)*4
+                yearscurrentHoveredGrouptime = yearscurHoverFirstLabeltime/4 + 1
+            }
+
+
+            if (yearsprevhovgrouptime < yearscurrentHoveredGrouptime){
+                yearsprevselectindtime = yearsprevhovgrouptime
+            }
+            else{
+                yearsprevselectindtime = 3 + yearsprevhovgrouptime
+            }
+
+
+
+            if (d.data === 0.8){
+                yearsrotatingtime = true;
+                yearsarcstime.attr("class", function(d) {
+                    if (d.index === yearsprevselectindtime){
+                        return 'prevgroup'
+                    }
+                    if (d.index === yearshoveredIndextime){
+                    
+                        return 'shadoweffect'
+                    }
+                    if (d.data === 1 && d.index === yearscurrentHoveredGrouptime){
+                        return 'highlighted'
+                    }
+                    if (d.index === yearsclickedIndextime && d.data === 0.8){
+                        return 'highlighted'
+                    }
+                    
+                    if (d.data === 0.8){
+                        return 'expandedarc'
+                    }
+                    else{
+                        return 'normal'
+                    }
+                })
+                
+            }
+
+        
+
+            
+
+            
+            
+
+
+
+
+            if (d.data === 1){
+                e = 0
+                yearsnewDataaaa2time = []
+
+                for (let i=0; i<yearsdatatime.length; i++){
+                    if (yearsdatatime[i] === yearscurrentHoveredGrouptime){
+                        for (let j=0; j<4; j++){
+                            yearsnewDataaaa2time.push(0.8)
+                    }
+                    }
+                    else{
+                        yearsnewDataaaa2time.push(1)
+                    }
+                }
+
+        
+                const yearspie2time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataaaa2time);
+                
+
+                yearsarcstime.data(yearspie2time)
+                    .transition()
+                    .duration(500)  
+                    .attr('d', (d,i) => {
+                        return yearsarctime(d)
+                    });
+
+
+                yearsarcstime
+                .attr("class", function(d) {
+                return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                });
+
+
+
+                
+
+                let yearsend1time = 0;
+                let yearsstart1time = yearsend1time;
+                let yearszount1time = 0;
+
+                yearsnewDataLabels2time = []
+                for (let i=0; i<yearsdatatime.length; i++){
+                    if (yearsdatatime[i] === yearscurrentHoveredGrouptime){
+                        for (let j=0; j<4; j++){
+                            yearsnewDataLabels2time.push((yearscurrentHoveredGrouptime-1)*4 + j+1)
+                            yearszount1time += 1
+                        }
+                        yearsprevHoveredLastIndextime = i+3
+                        yearsprevHoveredLastLabeltime = (yearscurrentHoveredGrouptime-1)*4 + 4
+                    }
+                    else{
+                        yearsstart1time = yearsend1time + 1
+                        if (yearszount1time > 0){
+                            yearsstart1time += 4
+                            yearszount1time = 0
+                        }
+                        yearsend1time = yearsstart1time + 3
+                        yearsnewDataLabels2time.push(`${yearsstart1time}-${yearsend1time}`)
+                    }
+                }
+                
+
+                const yearspie3time = d3.pie()
+                                .sort(null)
+                                .value(d=>d)(yearsnewDataLabels2time);
+
+
+                yearslabelstime.data(yearspie2time)
+                    .transition()
+                    .duration(500)
+                    .attr('transform', (d, i) => {
+                    yearsangle2time = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngle2time = (yearsangle2time * 180 / Math.PI);
+                    return (`translate(${yearsarctime.centroid(d)}) rotate(${yearsrotateAngletime})`)
+            })
+                
+                    .text((d, i) => {
+                        return yearsnewDataLabels2time[i]
+                    });
+                
+
+            }
+
+            else {
+                e = 1
+                yearsarcstime
+                .attr("class", function(d) {
+                    if (d.index === yearshoveredIndextime){
+                        return 'highlighted'
+                    }
+                    return d.data === 0.8 ? "expandedarc" : "normal";  // Conditional fill based on d.data
+                    
+                });
+                
+                
+                
+                
+                if (d.data === 0.8) {
+
+                    yearsangletime = (d.startAngle + d.endAngle) / 2;
+                    yearsrotateAngletime = (yearsangletime * 180 / Math.PI) + 90;
+
+                    yearGtime.transition()
+                        .duration(500)
+                        .attr('transform', `translate(${widthtime / 2}, ${heighttime / 2}) rotate(${-yearsrotateAngletime})`)
+                        .on('end', () => {
+                            yearsrotatingtime = false;
+                        });
+
+                    const yearsexpandedPietime = d3.pie()
+                        .sort(null)
+                        .value((d, i) => {
+                            return yearsnewDataaaa2time[i]
+                        })(yearsnewDataaaa2time);
+
+                    yearsarcstime.data(yearsexpandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('d', yearsarctime
+                        );
+
+                    yearslabelstime.data(yearsexpandedPietime)
+                        .transition()
+                        .duration(500)
+                        .attr('transform', (d, i) => `translate(${yearsarctime.centroid(d)}) rotate(${yearsrotateAngletime})`)
+                        .text((d, i) => {
+                            return (yearsnewDataLabels2time[i])
+                        });
+                }
+            }
+            
+        });
+
+
+    </script>
+</body>
+</html>
